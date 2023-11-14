@@ -1,7 +1,7 @@
 from datetime import date
 import re 
 import requests
-from aaa import *
+from Conexao import *
 
 # Função para autenticar o usuário
 def Cadastro():
@@ -49,7 +49,7 @@ def Cadastro():
                 print("Valor de entrada incorreto.")
     return dados_cadastro
 
-# Funçao para obter alguns dados de acordo com o cep
+# Funçao para obter alguns dados de acordo com o cep (api)
 def obter_informacoes_cep(cep):
     cep = cep.replace(".", "").replace("-", "")
     if len(cep) != 8:
@@ -198,8 +198,11 @@ def coleta_dados_bike():
                     break
                 
             while True:
-                Numeracao = (input("Digite a numeração da bike: "))
-                break
+                Numeracao = (input("Digite a numeração da bike: ")).strip()
+                if Numeracao:
+                    break
+                else:
+                    print("Por favor, digite a numeração da bike.")
             while True:
                 cor = input("Digite a cor da bike (Ex: Amarela, Preta): ")
                 if valida_nome(cor):
@@ -373,7 +376,7 @@ def principal_cadatro():
 def opcao():
     while True:
         print('''
-======= INFORME COMO DESEJA LOGAR NO SITE =======
+=======BEM VINDO A COMTRATAÇÃO DE SEGURO======
 (1) Login
 (2) Cadastro
 (3) Sair
@@ -423,263 +426,6 @@ def login():
         except ValueError:
             print("Erro: CPF deve ser um número inteiro. Tente novamente.")
 
-# Menu onde o usuario escolhe oque desaja fazer após realizar o login (inserir, atualizar, deletar, listar_bicicletas )
-def menu_crud():
-    while True:
-            print ('''
-===============OQUE DESEJA FAZER==============
-(1) Inserir bike
-(2) Atualizar bike
-(3) Deletar bike
-(4) Listar Bike
-(5) Sair
-==============================================''')
-            try:
-                escolha_crud = int(input("Escolha: "))
-                list_escolha = (1, 2, 3, 4, 5)
-                if escolha_crud in list_escolha:
-                    return escolha_crud
-                else:
-                    print("Escolha inválida. Tente novamente.")
-            except ValueError:
-                print ("Valor de entrada incorreta. Tente novamente.")
-
-# Função que o usuario pode inserir outra bike caso ja tenha cadastro
-def inserir_nova_bike(id_cliente, bike, acessorios):
-    try:
-        connection = obter_connection()
-        cursor_bike = connection.cursor()
-
-        # Adicione esta linha para imprimir os dados da bicicleta a serem inseridos
-        print(f"Dados da bicicleta a serem inseridos: {bike}")
-
-        # Inserção dos dados da bicicleta    
-        sql_query_bike = """
-            INSERT INTO T_MGT_BIKE (ID_CLIENTE, ID_BIKE, NM_MARCA, NR_REGISTRO, NM_COR, DT_BIKE, VL_MERCADO, TP_FUNCAO, TP_MODELO)
-            VALUES (:id_cliente, SEQ_ID_BIKE.NEXTVAL, :marca, :registro, :cor, :data_bike, :valor_mercado, :funcao, :modelo)
-        """
-        cursor_bike.execute(sql_query_bike, {
-            'id_cliente': id_cliente,
-            'marca': bike['Marca'],
-            'registro': bike['registro'],
-            'cor': bike['Cor'],
-            'data_bike': bike['Ano_bike'],
-            'valor_mercado': bike['Valor Mercado'],
-            'funcao': bike['Função'],
-            'modelo': bike['Modelo'],
-        })
-        connection.commit()
-        print("Dados da bicicleta inseridos com sucesso.")
-    except Exception as e:
-        print(f"Erro ao inserir dados da bicicleta: {e}")
-        connection.rollback()
-    finally:
-        cursor_bike.close()
-
-    try:
-        cursor_acessorio = connection.cursor()
-
-        # Adicione esta linha para imprimir os dados do acessório a serem inseridos
-        print(f"Dados do acessório a serem inseridos: {acessorios}")
-
-        # Inserção dos dados do acessório    
-        sql_query_acessorio = """
-            INSERT INTO T_MGT_ACESSORIO (ID_ACESSORIO, ID_BIKE, NM_ACESSORIO, VL_ACESSORIO)
-            VALUES (SEQ_ID_ACESSORIO.NEXTVAL, SEQ_ID_BIKE.CURRVAL, :acessorio, :preco)
-        """
-        for acessorio in acessorios:
-            cursor_acessorio.execute(sql_query_acessorio, {
-                'acessorio': acessorio['Acessório'],
-                'preco': acessorio['Preço'],
-            })
-        connection.commit()
-        print("Dados do acessório inseridos com sucesso.")
-    except Exception as e:
-        print(f"Erro ao inserir dados do acessório: {e}")
-        connection.rollback()
-    finally:
-        cursor_acessorio.close()
-        connection.close()
-
-# Função que o usuario pode atualizar outra bike caso ja tenha cadastro
-def atualizar(numeracao):
-    try:
-        connection = obter_connection()
-        cursor = connection.cursor()
-
-        print("Escolha os campos que deseja atualizar:")
-        print("1. Marca")
-        print("2. Registro")
-        print("3. Cor")
-        print("4. Data")
-        print("5. Valor")
-        print("6. Função")
-        print("7. Modelo")
-
-        escolha = input("Informe os números dos campos separados por vírgula (caso queira alterar mais de um): ").split(",")
-
-        updates = {}
-
-        if escolha == "1":
-            updates["NM_MARCA"] = input("Nova marca: ")
-        elif escolha == "2":
-            updates["NR_REGISTRO"] = input("Novo registro: ")
-        elif escolha == "3":
-            updates["NM_COR"] = input("Nova cor: ")
-        elif escolha == "4":
-            updates["DT_BIKE"] = input("Nova data: ")
-        elif escolha == "5":
-            updates["VL_MERCADO"] = input("Novo valor: ")
-        elif escolha == "6":
-            updates["TP_FUNCAO"] = input("Nova função: ")
-        elif escolha == "7":
-            updates["TP_MODELO"] = input("Novo modelo: ")
-
-        update_query = "UPDATE T_MGT_BIKE SET "
-        update_query += ", ".join([f"{key} = :{key}" for key in updates.keys()])
-        update_query += " WHERE NR_REGISTRO = :numeracao"
-
-        updates["numeracao"] = numeracao
-
-        # ** é usado para desempacotar o dicionario updates.
-        cursor.execute(update_query, **updates)
-        connection.commit()
-        print("Bicicleta atualizada com sucesso!")
-    except ValueError:
-        print("Número inválido. Certifique-se de inserir um número inteiro.")
-    except Exception as e:
-        print(f"Erro ao atualizar bicicleta: {e}")
-    finally:
-        cursor.close()
-        connection.close()
-
-def obter_id_bike(numero_serie):
-    try:
-        connection = obter_connection()
-        cursor = connection.cursor()
-
-        # Consulta para obter o id_bike pelo número de série
-        query = "SELECT ID_BIKE FROM T_MGT_BIKE WHERE NR_REGISTRO = :nr_registro"
-        cursor.execute(query, {"nr_registro": numero_serie})
-
-        # Recupera o resultado da consulta
-        result = cursor.fetchone()
-
-        if result:
-            id_bike = result[0]
-            return id_bike
-        else:
-            print(f"Bicicleta com número de série {numero_serie} não encontrada.")
-            return None
-
-    except Exception as e:
-        print(f"Erro ao obter id_bike pelo número de série: {e}")
-    finally:
-        cursor.close()
-        connection.close()
-
-# Função que o usuario pode deletar outra bike caso ja tenha cadastro
-def deletar(numeracao):
-    try:
-        connection = obter_connection()
-        cursor = connection.cursor()
-
-        id_bike = obter_id_bike(numeracao)
-
-        # Inicia uma transação
-        connection.begin()
-
-        # Delete acessórios relacionados à bicicleta
-        delete_acessorios_query = "DELETE FROM T_MGT_ACESSORIO WHERE ID_BIKE = :id_bike"
-        cursor.execute(delete_acessorios_query, {"id_bike": id_bike})
-
-        # Delete a bicicleta
-        delete_bicicleta_query = "DELETE FROM T_MGT_BIKE WHERE NR_REGISTRO  = :numeracao"
-        cursor.execute(delete_bicicleta_query, numeracao=numeracao)
-
-        # Commit da transação
-        connection.commit()
-
-        print("Bicicleta e acessórios deletados com sucesso!")
-    except ValueError:
-        print("Número inválido. Certifique-se de inserir um número inteiro.")
-    except Exception as e:
-        print(f"Erro ao deletar bicicleta e acessórios: {e}")
-    finally:
-        cursor.close()
-        connection.close()
-
-def obter_id_cliente(cpf):
-    try:
-        connection = obter_connection()
-        cursor = connection.cursor()
-
-        # Consulta para obter o ID do cliente pelo CPF
-        cursor.execute("SELECT ID_CLIENTE FROM T_MGT_PESSOA_FISICA WHERE NR_CPF = :cpf", cpf=cpf)
-
-        # Recupera o ID do cliente
-        id_cliente = cursor.fetchone()
-
-        if id_cliente:
-            return id_cliente[0]
-        else:
-            return None  # Se nenhum cliente encontrado
-
-    except Exception as e:
-        print(f"Erro ao obter ID do cliente por CPF: {e}")
-    finally:
-        cursor.close()
-        connection.close()
-
-# Lista a bike do usuario que esta logado
-def listar_bike(cpf):
-    connection = None
-    cursor = None
-    try:
-        # Obtenha o ID do usuário pelo CPF
-        id_usuario = obter_id_cliente(cpf)
-
-        if id_usuario is not None:
-            connection = obter_connection()
-            cursor = connection.cursor()
-
-            # Consulta para listar bicicletas do usuário específico
-            cursor.execute("SELECT * FROM T_MGT_BIKE WHERE ID_CLIENTE = :id_usuario", id_usuario=id_usuario)
-
-            # Recupera todos os registros
-            bicicletas = cursor.fetchall()
-
-            if bicicletas:
-                print(f"Lista de bicicletas para o usuário com CPF {cpf}:")
-                for bicicleta in bicicletas:
-                    print(f"Marca: {bicicleta[2]}")
-                    print(f"Numeracao: {bicicleta[3]}")
-                    print(f"Cor: {bicicleta[4]}")
-                    print(f"Ano bike: {bicicleta[5]}")
-                    print(f"valor_mercado: {bicicleta[6]}")
-                    print(f"funcao: {bicicleta[7]}")
-                    print(f"modelo: {bicicleta[8]}")
-            else:
-                print(f"Nenhuma bicicleta encontrada para o usuário com CPF {cpf}.")
-
-        else:
-            print(f"Usuário não encontrado para o CPF {cpf}.")
-
-    except Exception as e:
-        print(f"Erro ao listar bicicletas: {e}")
-    finally:
-        cursor.close()
-        connection.close()
-
-def exibir_dados_nova_bike(dados_bike, lista_acessorios):
-    print("\nDADOS DA BIKE")
-    dados_bike["Acessórios"] = lista_acessorios
-    for chave, valor in dados_bike.items():
-            print(f"{chave}: {valor}")
-
-    preco_total = calcular_preco_total([dados_bike]) 
-    print(f"\nPreço total da bicicleta com acessórios: R${preco_total:.2f}")
-
 # Função que realiza as funções do crud
 def realizar_crud(escolha_crud, cpf):
     id_cliente = obter_id_cliente(cpf)
@@ -689,7 +435,6 @@ def realizar_crud(escolha_crud, cpf):
         escolha_acessorio = menu_acessorio()
         lista_acessorios = acessorios(escolha_acessorio)
         inserir_nova_bike (id_cliente, dados_bike, lista_acessorios)
-        exibir_dados( dados_bike, lista_acessorios)
     elif escolha_crud == 2:
         numeracao_atualizar = input("Digite a numeração da bicicleta que deseja atualizar: ")
         atualizar(numeracao_atualizar)
@@ -701,26 +446,9 @@ def realizar_crud(escolha_crud, cpf):
     else:
         print("Escolha inválida.")
 
-# Menu para usuario escolher entre login 
-def opcao():
-    while True:
-        print('''
-======= INFORME COMO DESEJA LOGAR NO SITE =======
-(1) Login
-(2) Cadastro
-(3) Sair
-==============================================''')
-        try:
-            escolha_entrada = int(input("Escolha: "))
-            if  escolha_entrada in (1, 2, 3):
-                return  escolha_entrada
-            else:
-                print("Escolha inválida. Tente novamente.")
-        except ValueError:
-            print("Valor de entrada incorreto. Tente novamente.")
-
 # Programa principal para relizar cadastro ou login
 def principal():
+    while True:
         escolha_entrada = opcao()
         if escolha_entrada == 1:
             cpf = login()
@@ -729,6 +457,6 @@ def principal():
         elif escolha_entrada == 2:
             principal_cadatro()
         else:
-            print("Escolha inválida. Tente novamente.")
+            exit(print("Programa finalizado"))
 
 principal()
