@@ -2,7 +2,7 @@ import oracledb
 
 def obter_connection():
     try:
-        connection = oracledb.connect(user="RM99585", password="210305", dsn="oracle.fiap.com.br/orcl")
+        connection = oracledb.connect(user="******", password="******", dsn="oracle.fiap.com.br/orcl")
         return connection
     except Exception as e:
         print(f"Erro ao obter conexão: {e}")
